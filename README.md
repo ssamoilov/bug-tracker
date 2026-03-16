@@ -1,4 +1,4 @@
-# BugTracker - Профессиональный баг-трекер с Канбан-доской
+# BugTracker x Быстровайти.рф с Канбан-доской
 
 Полноценный веб-сервис для отслеживания задач и багов, работающий полностью на стороне клиента (PWA).
 
@@ -24,7 +24,7 @@
 - **Стили**: Tailwind CSS
 - **UI Компоненты**: Shadcn/ui
 - **Drag & Drop**: @dnd-kit
-- **Хранилище**: IndexedDB + localStorage
+- **Хранилище**: IndexedDB / localStorage
 - **Графики**: Recharts
 - **Даты**: date-fns
 - **Иконки**: Lucide React
