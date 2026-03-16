@@ -1,0 +1,246 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Светлая тема - минималистичная, с воздушными оттенками */
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.75rem;
+    
+    /* Дополнительные цвета */
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 48%;
+    
+    /* Градиенты */
+    --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  }
+
+  .dark {
+    /* Тёмная тема - глубокие, насыщенные цвета */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 6.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 6.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    
+    /* Дополнительные цвета для тёмной темы */
+    --success: 142 72% 45%;
+    --warning: 38 92% 55%;
+    --info: 199 89% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Плавные переходы для тем */
+  * {
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+}
+
+/* Современные эффекты */
+.glass {
+  @apply backdrop-blur-xl bg-white/80 dark:bg-black/50 border border-white/20 dark:border-white/10;
+}
+
+.glass-card {
+  @apply backdrop-blur-md bg-white/70 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-lg;
+}
+
+.neomorphic {
+  @apply bg-[#e0e0e0] dark:bg-[#2d2d2d] shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff] dark:shadow-[20px_20px_60px_#1a1a1a,-20px_-20px_60px_#404040];
+}
+
+/* Анимированный градиент */
+.gradient-animate {
+  background: linear-gradient(
+    -45deg,
+    #667eea,
+    #764ba2,
+    #f093fb,
+    #f5576c
+  );
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Минималистичный скроллбар */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+}
+
+/* Анимации */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.8; filter: brightness(1.2); }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Современные карточки */
+.modern-card {
+  @apply bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-800 
+         shadow-sm hover:shadow-md transition-all duration-300 
+         hover:scale-[1.02] hover:border-primary/50;
+}
+
+/* Ховер эффекты для ссылок и кнопок */
+.hover-lift {
+  @apply transition-transform duration-200 hover:-translate-y-0.5;
+}
+
+.hover-glow {
+  @apply transition-all duration-200 hover:shadow-[0_0_20px_rgba(99,102,241,0.3)];
+}
+
+/* Текстовые эффекты */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600;
+}
+
+/* Бейджи */
+.badge-modern {
+  @apply px-2.5 py-0.5 rounded-full text-xs font-medium 
+         bg-secondary text-secondary-foreground 
+         dark:bg-secondary/20 dark:text-secondary-foreground;
+}
+
+/* Кнопки */
+.btn-modern {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200
+         hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary-modern {
+  @apply btn-modern bg-gradient-to-r from-primary to-purple-600 text-white
+         hover:shadow-[0_0_20px_rgba(99,102,241,0.3)];
+}
+
+.btn-outline-modern {
+  @apply btn-modern border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+}
+
+/* Поля ввода */
+.input-modern {
+  @apply w-full px-4 py-2 rounded-lg border border-input bg-background
+         focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent
+         transition-all duration-200;
+}
+
+/* Разделители */
+.divider-modern {
+  @apply relative flex items-center justify-center;
+}
+
+.divider-modern::before,
+.divider-modern::after {
+  content: '';
+  @apply flex-1 h-px bg-border;
+}
+
+.divider-modern span {
+  @apply px-4 text-xs text-muted-foreground;
+}
