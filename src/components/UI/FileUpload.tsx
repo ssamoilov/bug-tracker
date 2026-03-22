@@ -158,7 +158,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 <Image className="w-3 h-3" /> Изображения ({imageFiles.length})
               </p>
               <div className="grid grid-cols-4 gap-2">
-                {imageFiles.map((file, index) => {
+                {imageFiles.map((file) => {
                   // Находим реальный индекс в общем массиве для правильного удаления
                   const realIndex = files.findIndex(f => f.id === file.id);
                   return (

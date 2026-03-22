@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Modal } from '../UI/Modal';
 import { Button } from '../UI/Button';
-import { Input } from '../UI/Input';
-import { Select } from '../UI/Select';
+// import { Input } from '../UI/Input';
+// import { Select } from '../UI/Select';
 import { FileUpload } from '../UI/FileUpload';
 import { Task, Priority, Status } from '../../types';
 import { PRIORITIES, MOCK_USERS, STATUSES } from '../../utils/constants';
-import { X, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 interface CreateTaskModalProps {
   isOpen: boolean;

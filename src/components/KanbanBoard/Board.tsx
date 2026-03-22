@@ -32,7 +32,6 @@ export const Board: React.FC<BoardProps> = ({
     handleDragStart,
     handleDragOver,
     handleDragEnd,
-    handleDragCancel,
     getColumnTasks,
   } = useDragAndDrop({
     tasks,
@@ -46,7 +45,6 @@ export const Board: React.FC<BoardProps> = ({
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
     >
       <div className="flex gap-4 p-4 overflow-x-auto min-h-[calc(100vh-120px)]">
         {COLUMN_ORDER.map((status) => (

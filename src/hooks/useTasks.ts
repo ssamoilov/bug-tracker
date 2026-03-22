@@ -1,52 +1,55 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Task, Status, Priority, Comment } from '../types';
-import { storage } from '../utils/storage';
-import { useLocalStorage } from './useLocalStorage';
-import { STORAGE_KEYS } from '../utils/constants';
+import { cloudStorage } from '../services/cloudStorage';
 import toast from 'react-hot-toast';
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tasksCache] = useLocalStorage<Task[]>(STORAGE_KEYS.TASKS, []);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Load tasks from IndexedDB
+  // Подписка на изменения хранилища
   useEffect(() => {
-    loadTasks();
+    const unsubscribe = cloudStorage.subscribe(() => {
+      // Обновляем задачи при изменении в хранилище
+      cloudStorage.loadTasks().then(loadedTasks => {
+        setTasks(loadedTasks);
+      });
+    });
+
+    return unsubscribe;
   }, []);
 
-  const loadTasks = async () => {
+  // Загрузка задач
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
-      const loadedTasks = await storage.getTasks();
-      // Больше не используем tasksCache как fallback с моковыми данными
+      const loadedTasks = await cloudStorage.loadTasks();
       setTasks(loadedTasks);
     } catch (err) {
       setError('Failed to load tasks');
       console.error(err);
-      setTasks([]); // Пустой массив при ошибке
+      setTasks([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Создание задачи
   const createTask = useCallback(async (taskData: Partial<Task>) => {
     try {
       const year = new Date().getFullYear();
       const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       const taskId = `BUG-${year}-${random}`;
 
-      // Парсим description если он есть
       let severity: any = 'major';
       try {
         if (taskData.description) {
           const parsed = JSON.parse(taskData.description as string);
           severity = parsed.severity || 'major';
         }
-      } catch (e) {
-        // Ignore parsing error
-      }
+      } catch (e) {}
 
       const newTask: Task = {
         id: taskId,
@@ -63,16 +66,16 @@ export function useTasks() {
         ...taskData,
       };
 
-      await storage.saveTask(newTask);
-      setTasks(prev => [...prev, newTask]);
-      toast.success('Баг-репорт успешно создан');
+      await cloudStorage.saveTask(newTask);
+      toast.success('✅ Задача успешно создана');
       return newTask;
     } catch (err) {
-      toast.error('Ошибка при создании баг-репорта');
+      toast.error('Ошибка при создании задачи');
       throw err;
     }
   }, []);
 
+  // Обновление задачи
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
     try {
       const task = tasks.find(t => t.id === taskId);
@@ -84,9 +87,8 @@ export function useTasks() {
         updatedAt: new Date().toISOString(),
       };
 
-      await storage.saveTask(updatedTask);
-      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-      toast.success('Задача обновлена');
+      await cloudStorage.saveTask(updatedTask);
+      toast.success('✏️ Задача обновлена');
       return updatedTask;
     } catch (err) {
       toast.error('Ошибка при обновлении задачи');
@@ -94,17 +96,18 @@ export function useTasks() {
     }
   }, [tasks]);
 
+  // Удаление задачи
   const deleteTask = useCallback(async (taskId: string) => {
     try {
-      await storage.deleteTask(taskId);
-      setTasks(prev => prev.filter(t => t.id !== taskId));
-      toast.success('Задача удалена');
+      await cloudStorage.deleteTask(taskId);
+      toast.success('🗑️ Задача удалена');
     } catch (err) {
       toast.error('Ошибка при удалении задачи');
       throw err;
     }
   }, []);
 
+  // Изменение статуса
   const updateTaskStatus = useCallback(async (taskId: string, newStatus: Status) => {
     try {
       const task = tasks.find(t => t.id === taskId);
@@ -116,50 +119,49 @@ export function useTasks() {
         updatedAt: new Date().toISOString(),
       };
 
-      // Оптимистичное обновление
       setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-
-      await storage.saveTask(updatedTask);
-      toast.success(`Статус изменен на ${getStatusName(newStatus)}`);
+      await cloudStorage.saveTask(updatedTask);
+      toast.success(`📊 Статус изменен на ${getStatusName(newStatus)}`);
     } catch (err) {
-      // Откат при ошибке
       await loadTasks();
       toast.error('Ошибка при изменении статуса');
     }
-  }, [tasks]);
+  }, [tasks, loadTasks]);
 
-  const addComment = useCallback(async (taskId: string, content: string, userId: string) => {
+  // Синхронизация с облаком
+  const syncWithCloud = useCallback(async () => {
+    setIsSyncing(true);
     try {
-      const newComment: Comment = {
-        id: `comment-${Date.now()}`,
-        taskId,
-        userId,
-        content,
-        createdAt: new Date().toISOString(),
-      };
-
-      await storage.saveComment(newComment);
-
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        const updatedTask: Task = {
-          ...task,
-          commentIds: [...task.commentIds, newComment.id],
-          updatedAt: new Date().toISOString(),
-        };
-        await storage.saveTask(updatedTask);
-        setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-      }
-
-      toast.success('Комментарий добавлен');
-      return newComment;
+      await cloudStorage.syncWithCloud();
+      await loadTasks();
     } catch (err) {
-      toast.error('Ошибка при добавлении комментария');
-      throw err;
+      toast.error('Ошибка синхронизации');
+    } finally {
+      setIsSyncing(false);
     }
-  }, [tasks]);
+  }, [loadTasks]);
 
-  // Фильтрация задач
+  // Проверка авторизации
+  const isAuthenticated = useCallback(() => {
+    return cloudStorage.isAuthenticated();
+  }, []);
+
+  // Получение статуса синхронизации
+  const getLastSync = useCallback(() => {
+    return cloudStorage.getLastSync();
+  }, []);
+
+  // Очистка всех задач
+  const clearAllTasks = useCallback(async () => {
+    try {
+      await cloudStorage.clearAllTasks();
+      toast.success('Все данные удалены');
+    } catch (err) {
+      toast.error('Ошибка при удалении данных');
+    }
+  }, []);
+
+  // Фильтрация
   const getTasksByStatus = useCallback((status: Status) => {
     return tasks.filter(task => task.status === status);
   }, [tasks]);
@@ -181,30 +183,26 @@ export function useTasks() {
     );
   }, [tasks]);
 
-  // Очистка всех задач (для отладки)
-  const clearAllTasks = useCallback(async () => {
-    try {
-      await storage.clearAllTasks();
-      setTasks([]);
-      toast.success('Все задачи удалены');
-    } catch (err) {
-      toast.error('Ошибка при удалении задач');
-    }
-  }, []);
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   return {
     tasks,
     loading,
     error,
+    isSyncing,
     createTask,
     updateTask,
     deleteTask,
     updateTaskStatus,
-    addComment,
     getTasksByStatus,
     getTasksByPriority,
     getTasksByAssignee,
     searchTasks,
+    syncWithCloud,
+    isAuthenticated,
+    getLastSync,
     clearAllTasks,
     refreshTasks: loadTasks,
   };

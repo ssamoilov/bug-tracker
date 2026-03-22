@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { MainLayout } from './components/Layout/MainLayout';
 import { Board } from './components/KanbanBoard/Board';
 import { CreateTaskModal } from './components/Modals/CreateTaskModal';
@@ -19,11 +19,26 @@ function App() {
   const {
     tasks,
     loading,
+    isSyncing,
     createTask,
     updateTask,
     updateTaskStatus,
     deleteTask,
+    syncWithCloud,
+    isAuthenticated,
+    getLastSync,
+    refreshTasks,
   } = useTasks();
+
+  // Проверка синхронизации при загрузке
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const lastSync = getLastSync();
+      if (!lastSync || new Date().getTime() - new Date(lastSync).getTime() > 3600000) {
+        syncWithCloud();
+      }
+    }
+  }, []);
 
   // Hotkeys
   useHotkeys({
@@ -38,17 +53,14 @@ function App() {
 
   const handleCreateTask = async (taskData: Partial<Task>) => {
     await createTask(taskData as any);
-    toast.success('Задача успешно создана');
   };
 
   const handleStatusChange = async (taskId: string, newStatus: Status) => {
     await updateTaskStatus(taskId, newStatus);
-    toast.success(`Статус задачи изменен`);
   };
 
   const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
     await updateTask(taskId, updates);
-    toast.success('Задача обновлена');
   };
 
   const handleAddTask = (status: Status) => {
@@ -56,12 +68,22 @@ function App() {
     setIsCreateModalOpen(true);
   };
 
+  const handleSync = async () => {
+    await syncWithCloud();
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Загрузка задач...</p>
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-2xl">🐞</span>
+            </div>
+          </div>
+          <p className="text-gray-300 font-medium">Загрузка задач...</p>
+          <p className="text-gray-500 text-sm mt-2">Подготовка вашего рабочего пространства</p>
         </div>
       </div>
     );
@@ -71,11 +93,15 @@ function App() {
     <MainLayout
       activeTab={activeTab}
       onTabChange={setActiveTab}
-      onSearchClick={() => {}}
+      onSearchClick={() => {
+        toast('🔍 Поиск в разработке', { icon: '🚧' });
+      }}
       onCreateClick={() => {
         setSelectedStatusForCreate('todo');
         setIsCreateModalOpen(true);
       }}
+      onSyncClick={handleSync}
+      isSyncing={isSyncing}
     >
       {activeTab === 'board' && (
         <Board
@@ -114,23 +140,6 @@ function App() {
           onUpdate={handleUpdateTask}
           onDelete={deleteTask}
         />
-      )}
-
-      {/* Dev tools - можно закомментировать или удалить */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
-          <button
-            onClick={async () => {
-              if (window.confirm('Очистить все задачи?')) {
-                localStorage.removeItem('bugtracker-tasks');
-                window.location.reload();
-              }
-            }}
-            className="px-3 py-1 bg-red-500 text-white text-xs rounded-lg shadow-lg"
-          >
-            Очистить все задачи (для теста!!! не актуально на 16.03.26)
-          </button>
-        </div>
       )}
     </MainLayout>
   );

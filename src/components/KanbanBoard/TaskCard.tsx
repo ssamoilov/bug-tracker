@@ -106,7 +106,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onClick }) => 
           <Badge 
             variant="info" 
             className="text-xs"
-            style={{ backgroundColor: `${priority.color}20`, color: priority.color }}
+            // style={{ backgroundColor: `${priority.color}20`, color: priority.color }}
           >
             {priority.icon} {priority.label}
           </Badge>

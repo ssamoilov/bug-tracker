@@ -3,7 +3,7 @@ import { Modal } from '../UI/Modal';
 import { Button } from '../UI/Button';
 import { Avatar } from '../UI/Avatar';
 import { Badge } from '../UI/Badge';
-import { Input } from '../UI/Input';
+// import { Input } from '../UI/Input';
 import { ImageSlider } from '../UI/ImageSlider';
 import { FileUpload } from '../UI/FileUpload';
 import { Task } from '../../types';
@@ -13,7 +13,7 @@ import {
   Paperclip, 
   Calendar, 
   Edit2,
-  Trash2,
+//   Trash2,
   Download,
   AlertCircle,
   CheckCircle,
@@ -51,7 +51,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   isOpen,
   onClose,
   onUpdate,
-  onDelete,
+//   onDelete,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [sliderOpen, setSliderOpen] = useState(false);
