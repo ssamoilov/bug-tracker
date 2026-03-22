@@ -36,7 +36,7 @@ class GoogleDriveService {
     localStorage.removeItem('google-drive-token');
   }
 
-  private async getOrCreateFolder(): Promise<string> {
+  private async getOrCreateFolder(): Promise<string | null> {
     if (this.folderId) return this.folderId;
 
     try {
@@ -79,7 +79,7 @@ class GoogleDriveService {
       return this.folderId;
     } catch (error) {
       console.error('Error getting/creating folder:', error);
-      throw error;
+      return null;
     }
   }
 
@@ -89,6 +89,7 @@ class GoogleDriveService {
 
     try {
       const folderId = await this.getOrCreateFolder();
+      if (!folderId) throw new Error('Could not create folder');
       
       const data = {
         version: '1.0',
@@ -162,6 +163,7 @@ class GoogleDriveService {
 
     try {
       const folderId = await this.getOrCreateFolder();
+      if (!folderId) return null;
       
       const searchResponse = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=name='${this.FILE_NAME}' and '${folderId}' in parents and trashed=false`,
@@ -195,7 +197,7 @@ class GoogleDriveService {
       };
     } catch (error) {
       console.error('Error loading from Google Drive:', error);
-      throw error;
+      return null;
     }
   }
 
@@ -205,6 +207,7 @@ class GoogleDriveService {
 
     try {
       const folderId = await this.getOrCreateFolder();
+      if (!folderId) return { lastSync: null, fileId: null };
       
       const searchResponse = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=name='${this.FILE_NAME}' and '${folderId}' in parents and trashed=false&fields=files(id,modifiedTime)`,

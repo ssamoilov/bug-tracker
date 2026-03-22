@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cloud, CloudOff, Upload, Download, RefreshCw, LogIn, LogOut } from 'lucide-react';
+import { Cloud, CloudOff, Upload, Download, RefreshCw, LogOut } from 'lucide-react';
 import { googleDrive } from '../../services/googleDrive';
 import { storage } from '../../utils/storage';
 import toast from 'react-hot-toast';
@@ -79,16 +79,6 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
     }
 
     try {
-      // Выводим информацию о текущем origin для отладки
-      const currentOrigin = window.location.origin;
-      console.log('Current origin for OAuth:', currentOrigin);
-      
-      // Предупреждение, если origin не добавлен в Google Cloud Console
-      if (currentOrigin.includes('localhost') && !currentOrigin.includes('3001')) {
-        console.warn(`Ваш текущий порт ${currentOrigin}, но в Google Cloud Console может быть настроен другой порт.`);
-        toast.info(`Текущий порт: ${currentOrigin}. Убедитесь, что он добавлен в настройках Google Cloud Console.`);
-      }
-
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/drive.file',
@@ -190,7 +180,10 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
           window.location.reload();
         }
       } else {
-        toast.info('В Google Drive нет сохраненных данных');
+        toast('В Google Drive нет сохраненных данных', {
+          icon: 'ℹ️',
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error('Load error:', error);
@@ -238,7 +231,10 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
             setSyncInfo(info);
           }
         } else {
-          toast.info('Нет данных для синхронизации');
+          toast('Нет данных для синхронизации', {
+            icon: 'ℹ️',
+            duration: 2000,
+          });
         }
       } else if (localTasks.length > 0) {
         const confirmed = window.confirm(
@@ -252,7 +248,10 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
           setSyncInfo(info);
         }
       } else {
-        toast.info('Нет данных для синхронизации');
+        toast('Нет данных для синхронизации', {
+          icon: 'ℹ️',
+          duration: 2000,
+        });
       }
     } catch (error) {
       console.error('Sync error:', error);

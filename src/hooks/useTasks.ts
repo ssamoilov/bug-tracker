@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, Status, Priority, Comment } from '../types';
+import { Task, Status, Priority } from '../types';
 import { cloudStorage } from '../services/cloudStorage';
 import toast from 'react-hot-toast';
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from './components/Layout/MainLayout';
 import { Board } from './components/KanbanBoard/Board';
 import { CreateTaskModal } from './components/Modals/CreateTaskModal';
@@ -19,7 +19,6 @@ function App() {
   const {
     tasks,
     loading,
-    isSyncing,
     createTask,
     updateTask,
     updateTaskStatus,
@@ -27,7 +26,6 @@ function App() {
     syncWithCloud,
     isAuthenticated,
     getLastSync,
-    refreshTasks,
   } = useTasks();
 
   // Проверка синхронизации при загрузке
@@ -68,10 +66,6 @@ function App() {
     setIsCreateModalOpen(true);
   };
 
-  const handleSync = async () => {
-    await syncWithCloud();
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
@@ -100,8 +94,6 @@ function App() {
         setSelectedStatusForCreate('todo');
         setIsCreateModalOpen(true);
       }}
-      onSyncClick={handleSync}
-      isSyncing={isSyncing}
     >
       {activeTab === 'board' && (
         <Board

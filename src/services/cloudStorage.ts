@@ -145,7 +145,10 @@ class CloudStorageService {
 
     try {
       if (!googleDrive.isAuthenticated()) {
-        toast.info('Войдите в Google Drive для синхронизации');
+        toast('Войдите в Google Drive для синхронизации', {
+          icon: '🔐',
+          duration: 3000,
+        });
         return;
       }
 
@@ -167,7 +170,10 @@ class CloudStorageService {
           await googleDrive.saveData(localTasks, localCache.users);
           toast.success(`Сохранено ${localTasks.length} задач в Google Drive`);
         } else {
-          toast.info('Данные актуальны');
+          toast('Данные актуальны', {
+            icon: '✅',
+            duration: 2000,
+          });
         }
       } else if (localTasks.length > 0) {
         await googleDrive.saveData(localTasks, localCache.users);
