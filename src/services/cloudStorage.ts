@@ -15,6 +15,7 @@ class CloudStorageService {
   private listeners: Array<() => void> = [];
   private autoSyncTimer: NodeJS.Timeout | null = null;
   private lastSaveTime: number = 0;
+  private saveTimer: NodeJS.Timeout | null = null;
   private readonly AUTO_SYNC_INTERVAL = 30000; // 30 секунд
   private readonly SAVE_DEBOUNCE = 2000; // 2 секунды после изменений
 
@@ -70,7 +71,6 @@ class CloudStorageService {
           ? Math.max(...localTasks.map(t => new Date(t.updatedAt).getTime()))
           : 0;
         
-        // Если в облаке новее данные
         if (cloudLastUpdate > localLastUpdate) {
           console.log('Auto-sync: Newer data found in cloud, loading...');
           localCache.tasks = cloudData.tasks;
@@ -88,15 +88,12 @@ class CloudStorageService {
     }
   }
 
-  // Дебаунс для сохранения
   private scheduleSave() {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => {
       this.performSave();
     }, this.SAVE_DEBOUNCE);
   }
-  
-  private saveTimer: NodeJS.Timeout | null = null;
   
   private async performSave() {
     if (!googleDrive.isAuthenticated()) return;
@@ -115,18 +112,15 @@ class CloudStorageService {
 
   async loadTasks(): Promise<Task[]> {
     try {
-      // Загружаем из localStorage сначала для быстрого отображения
       const localData = this.loadFromLocalStorage();
       if (localData.tasks.length > 0) {
         localCache.tasks = localData.tasks;
         localCache.users = localData.users;
       }
       
-      // Затем асинхронно загружаем из облака, если авторизованы
       if (googleDrive.isAuthenticated()) {
         const cloudData = await googleDrive.loadData();
         if (cloudData && cloudData.tasks.length > 0) {
-          // Сравниваем даты и берем более новые
           const cloudLastUpdate = Math.max(...cloudData.tasks.map(t => new Date(t.updatedAt).getTime()));
           const localLastUpdate = localCache.tasks.length > 0 
             ? Math.max(...localCache.tasks.map(t => new Date(t.updatedAt).getTime()))
@@ -139,12 +133,10 @@ class CloudStorageService {
             this.notify();
             console.log('Loaded newer data from cloud');
           } else if (localLastUpdate > cloudLastUpdate && localCache.tasks.length > 0) {
-            // Локальные данные новее, сохраняем в облако
             await googleDrive.saveData(localCache.tasks, localCache.users);
             console.log('Saved local data to cloud');
           }
         } else if (localCache.tasks.length > 0) {
-          // Нет данных в облаке, сохраняем локальные
           await googleDrive.saveData(localCache.tasks, localCache.users);
           console.log('Initial save to cloud');
         }
@@ -173,7 +165,6 @@ class CloudStorageService {
       this.saveToLocalStorage();
       this.notify();
 
-      // Автоматическое сохранение в облако
       if (googleDrive.isAuthenticated()) {
         this.scheduleSave();
       }
@@ -213,7 +204,8 @@ class CloudStorageService {
     }
   }
 
-  async syncNow(): Promise<void> {
+  // Метод для ручной синхронизации
+  async syncWithCloud(): Promise<void> {
     if (this.syncInProgress) return;
     this.syncInProgress = true;
 
@@ -263,6 +255,42 @@ class CloudStorageService {
       toast.error('Ошибка синхронизации');
     } finally {
       this.syncInProgress = false;
+    }
+  }
+
+  // Метод для очистки всех данных
+  async clearAllTasks(): Promise<void> {
+    try {
+      localCache.tasks = [];
+      this.saveToLocalStorage();
+      this.notify();
+
+      if (googleDrive.isAuthenticated()) {
+        await googleDrive.saveData(localCache.tasks, localCache.users);
+        console.log('Cleared data in cloud');
+      }
+      
+      toast.success('Все данные удалены');
+    } catch (error) {
+      console.error('Error clearing tasks:', error);
+      throw error;
+    }
+  }
+
+  async getUsers(): Promise<User[]> {
+    if (localCache.users.length === 0) {
+      const localData = this.loadFromLocalStorage();
+      localCache.users = localData.users;
+    }
+    return localCache.users;
+  }
+
+  async saveUsers(users: User[]): Promise<void> {
+    localCache.users = users;
+    this.saveToLocalStorage();
+    
+    if (googleDrive.isAuthenticated()) {
+      this.scheduleSave();
     }
   }
 

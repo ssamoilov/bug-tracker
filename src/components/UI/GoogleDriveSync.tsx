@@ -228,7 +228,7 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
 
     setIsLoading(true);
     try {
-      await cloudStorage.syncNow();
+      await cloudStorage.syncWithCloud();
       
       const info = await googleDrive.getSyncInfo();
       setSyncInfo(info);
