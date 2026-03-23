@@ -7,6 +7,7 @@ import { StatisticsDashboard } from './components/Statistics/Dashboard';
 import { TaskList } from './components/TaskList/TaskList';
 import { useTasks } from './hooks/useTasks';
 import { useHotkeys } from './hooks/useHotkeys';
+import { cloudStorage } from './services/cloudStorage';
 import { Task, Status } from './types';
 import toast from 'react-hot-toast';
 
@@ -28,15 +29,33 @@ function App() {
     getLastSync,
   } = useTasks();
 
-  // Проверка синхронизации при загрузке
+  // Запускаем автоматическую синхронизацию при загрузке
   useEffect(() => {
+    // Проверяем авторизацию и запускаем автосинхронизацию
     if (isAuthenticated()) {
+      cloudStorage.startAutoSync();
+      
+      // Проверяем последнюю синхронизацию
       const lastSync = getLastSync();
       if (!lastSync || new Date().getTime() - new Date(lastSync).getTime() > 3600000) {
         syncWithCloud();
       }
     }
+    
+    // Останавливаем синхронизацию при размонтировании
+    return () => {
+      cloudStorage.stopAutoSync();
+    };
   }, []);
+
+  // Сохраняем токен авторизации для автоматической синхронизации
+  useEffect(() => {
+    if (isAuthenticated()) {
+      cloudStorage.startAutoSync();
+    } else {
+      cloudStorage.stopAutoSync();
+    }
+  }, [isAuthenticated]);
 
   // Hotkeys
   useHotkeys({

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Cloud, CloudOff, Upload, Download, RefreshCw, LogOut } from 'lucide-react';
+import { Cloud, CloudOff, Upload, Download, RefreshCw, LogOut, CheckCircle } from 'lucide-react';
 import { googleDrive } from '../../services/googleDrive';
+import { cloudStorage } from '../../services/cloudStorage';
 import { storage } from '../../utils/storage';
 import toast from 'react-hot-toast';
 
@@ -19,6 +20,7 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
   const [isLoading, setIsLoading] = useState(false);
   const [syncInfo, setSyncInfo] = useState<{ lastSync: string | null }>({ lastSync: null });
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
 
   // ВАШ CLIENT ID
   const CLIENT_ID = '343045889556-p9gd051smpokqvql7guj078b02u8uep0.apps.googleusercontent.com';
@@ -51,6 +53,17 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
     };
 
     loadGoogleAPI();
+
+    // Проверяем статус автосинхронизации
+    const checkAutoSync = () => {
+      const token = googleDrive.getToken();
+      setIsAutoSyncing(!!token);
+    };
+    
+    checkAutoSync();
+    const interval = setInterval(checkAutoSync, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const checkAuth = async () => {
@@ -88,7 +101,15 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
             console.log('Token received successfully');
             googleDrive.setToken(tokenResponse.access_token);
             setIsAuthenticated(true);
+            setIsAutoSyncing(true);
             toast.success('Успешный вход в Google Drive');
+            toast('Автоматическая синхронизация включена', {
+              icon: '🔄',
+              duration: 3000,
+            });
+            
+            // Запускаем автосинхронизацию
+            cloudStorage.startAutoSync();
             
             if (onSyncComplete) {
               onSyncComplete();
@@ -121,8 +142,14 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
   const handleLogout = () => {
     googleDrive.clearToken();
     setIsAuthenticated(false);
+    setIsAutoSyncing(false);
     setSyncInfo({ lastSync: null });
+    cloudStorage.stopAutoSync();
     toast.success('Выход выполнен');
+    toast('Автоматическая синхронизация отключена', {
+      icon: '⏸️',
+      duration: 3000,
+    });
   };
 
   const saveToDrive = async () => {
@@ -201,61 +228,16 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
 
     setIsLoading(true);
     try {
-      const driveData = await googleDrive.loadData();
-      const localTasks = await storage.getTasks();
+      await cloudStorage.syncNow();
       
-      if (driveData && driveData.tasks.length > 0) {
-        const driveLastSync = driveData.tasks[0]?.updatedAt || '';
-        const localLastSync = localTasks[0]?.updatedAt || '';
-        
-        if (new Date(driveLastSync) > new Date(localLastSync)) {
-          const confirmed = window.confirm(
-            `В Google Drive более новые данные (${driveData.tasks.length} задач).\n` +
-            `Загрузить их?`
-          );
-          if (confirmed) {
-            await storage.saveTasks(driveData.tasks);
-            toast.success('Синхронизация завершена (загружено из Drive)');
-            if (onSyncComplete) onSyncComplete();
-            window.location.reload();
-          }
-        } else if (localTasks.length > 0) {
-          const confirmed = window.confirm(
-            `Локальные данные новее (${localTasks.length} задач).\n` +
-            `Сохранить их в Google Drive?`
-          );
-          if (confirmed) {
-            await googleDrive.saveData(localTasks, await storage.getUsers());
-            toast.success('Синхронизация завершена (сохранено в Drive)');
-            const info = await googleDrive.getSyncInfo();
-            setSyncInfo(info);
-          }
-        } else {
-          toast('Нет данных для синхронизации', {
-            icon: 'ℹ️',
-            duration: 2000,
-          });
-        }
-      } else if (localTasks.length > 0) {
-        const confirmed = window.confirm(
-          `Нет данных в Google Drive.\n` +
-          `Сохранить ${localTasks.length} локальных задач в Drive?`
-        );
-        if (confirmed) {
-          await googleDrive.saveData(localTasks, await storage.getUsers());
-          toast.success('Локальные данные сохранены в Drive');
-          const info = await googleDrive.getSyncInfo();
-          setSyncInfo(info);
-        }
-      } else {
-        toast('Нет данных для синхронизации', {
-          icon: 'ℹ️',
-          duration: 2000,
-        });
+      const info = await googleDrive.getSyncInfo();
+      setSyncInfo(info);
+      
+      if (onSyncComplete) {
+        onSyncComplete();
       }
     } catch (error) {
       console.error('Sync error:', error);
-      toast.error('Ошибка синхронизации');
     } finally {
       setIsLoading(false);
     }
@@ -270,12 +252,15 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
             ? 'bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20'
             : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
         }`}
-        title={isAuthenticated ? 'Google Drive синхронизация' : 'Войти в Google Drive'}
+        title={isAuthenticated ? 'Google Drive синхронизация (авто)' : 'Войти в Google Drive'}
       >
         {isAuthenticated ? (
           <Cloud className="w-4 h-4" />
         ) : (
           <CloudOff className="w-4 h-4" />
+        )}
+        {isAuthenticated && isAutoSyncing && (
+          <CheckCircle className="w-3 h-3 absolute -top-1 -right-1 text-green-500" />
         )}
         <span className="text-sm hidden sm:inline">
           {isAuthenticated ? 'Drive' : 'Войти'}
@@ -285,10 +270,17 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
       {isAuthenticated && (
         <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
           <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-sm font-medium">Google Drive</p>
+            <p className="text-sm font-medium flex items-center gap-2">
+              Google Drive
+              {isAutoSyncing && (
+                <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded-full">
+                  Авто
+                </span>
+              )}
+            </p>
             <p className="text-xs text-gray-500 mt-1">
               {syncInfo.lastSync 
-                ? `Последняя синхронизация:\n${new Date(syncInfo.lastSync).toLocaleString()}`
+                ? `Синхронизация:\n${new Date(syncInfo.lastSync).toLocaleString()}`
                 : 'Нет данных в Drive'}
             </p>
           </div>
@@ -318,7 +310,7 @@ export const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ onSyncComplete
               className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Синхронизировать
+              Синхронизировать сейчас
             </button>
             
             <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
